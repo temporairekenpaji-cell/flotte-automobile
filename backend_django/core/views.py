@@ -107,10 +107,13 @@ class VehicleDocumentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = VehicleDocument.objects.all()
         vehicle_id = self.request.query_params.get('vehicle_id') or self.request.query_params.get('vehicle')
+        chauffeur_id = self.request.query_params.get('chauffeur_id') or self.request.query_params.get('chauffeur')
         expired_only = self.request.query_params.get('expired_only')
         
         if vehicle_id:
             queryset = queryset.filter(vehicle_id=vehicle_id)
+        if chauffeur_id:
+            queryset = queryset.filter(chauffeur_id=chauffeur_id)
         if expired_only == 'true':
             queryset = queryset.filter(statut='expire')
         return queryset
@@ -135,8 +138,12 @@ class VehicleDocumentViewSet(viewsets.ModelViewSet):
             document=doc,
             ancienne_date_expiration=doc.date_expiration,
             nouvelle_date_expiration=date_expiration,
-            modified_by=request.user
+            modified_by=request.user,
+            commentaire=remarque
         )
+
+        # Close all active notifications for this document before updating
+        Notification.objects.filter(document=doc, is_closed=False).update(is_closed=True)
 
         # Update active document
         doc.date_debut = date_debut
@@ -154,10 +161,10 @@ class VehicleDocumentViewSet(viewsets.ModelViewSet):
             new_status = 'expire'
         else:
             if doc.periode in ['1_an', '6_mois']:
-                if diff_days <= 30:
+                if diff_days <= 90:
                     new_status = 'expire_bientot'
-            elif doc.periode == '3_mois':
-                if diff_days <= 7:
+            elif doc.periode in ['3_mois', 'autre']:
+                if diff_days <= 30:
                     new_status = 'expire_bientot'
         doc.statut = new_status
         doc.save()
@@ -169,35 +176,33 @@ class VehicleDocumentViewSet(viewsets.ModelViewSet):
 # ─── Notification ViewSet ─────────────────────────────────────────────────────
 
 class NotificationViewSet(viewsets.ModelViewSet):
-    queryset = Notification.objects.all()
+    queryset = Notification.objects.filter(is_closed=False)
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['created_at']
 
     def get_queryset(self):
-        queryset = Notification.objects.all()
+        queryset = Notification.objects.filter(is_closed=False)
         is_read = self.request.query_params.get('is_read')
         urgency = self.request.query_params.get('urgency')
         
         if is_read is not None:
             queryset = queryset.filter(is_read=(is_read.lower() == 'true'))
             
-        # Urgency sorting: Expired (message containing 'expiré') > Expires soon ('approche') > Read status
+        # Urgency sorting: Expired (message containing 'expiré') > Expires soon > Read status
         if urgency == 'true':
-            # Order first by unread, then by message containing 'expiré' (critical), then by created_at
-            # In python, we can order by is_read (unread first) and message content
             queryset = queryset.order_by('is_read', '-created_at')
         return queryset
 
     @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
     def mark_all_as_read(self, request):
-        Notification.objects.filter(is_read=False).update(is_read=True)
+        Notification.objects.filter(is_read=False, is_closed=False).update(is_read=True)
         return Response({"status": "success"}, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def unread_count(self, request):
-        count = Notification.objects.filter(is_read=False).count()
+        count = Notification.objects.filter(is_read=False, is_closed=False).count()
         return Response({"count": count}, status=status.HTTP_200_OK)
 
 
@@ -425,7 +430,26 @@ class DashboardStatsView(APIView):
         valid_documents = VehicleDocument.objects.filter(statut='valide').count()
         expiring_documents = VehicleDocument.objects.filter(statut='expire_bientot').count()
         expired_documents = VehicleDocument.objects.filter(statut='expire').count()
-        unread_notifications = Notification.objects.filter(is_read=False).count()
+        unread_notifications = Notification.objects.filter(is_read=False, is_closed=False).count()
+
+        # Urgent documents list for dashboard widget (expired first, then expiring soon)
+        from itertools import chain
+        expired_docs_qs = VehicleDocument.objects.select_related('vehicle', 'chauffeur').filter(statut='expire').order_by('date_expiration')[:10]
+        expiring_docs_qs = VehicleDocument.objects.select_related('vehicle', 'chauffeur').filter(statut='expire_bientot').order_by('date_expiration')[:10]
+        urgent_documents = []
+        for doc in chain(expired_docs_qs, expiring_docs_qs):
+            urgent_documents.append({
+                'id': doc.id,
+                'document_type': doc.document_type,
+                'document_type_display': doc.get_document_type_display(),
+                'vehicle_plate': doc.vehicle.immatriculation if doc.vehicle else None,
+                'chauffeur_name': doc.chauffeur.nom if doc.chauffeur else None,
+                'date_expiration': str(doc.date_expiration),
+                'statut': doc.statut,
+                'numero_document': doc.numero_document or '',
+            })
+            if len(urgent_documents) >= 10:
+                break
 
         # Monthly operational KPIs
         tolls_month_cost = float(Peage.objects.filter(date__gte=month_start).aggregate(total=Sum('montant'))['total'] or 0)
@@ -457,6 +481,7 @@ class DashboardStatsView(APIView):
             'expiring_documents': expiring_documents,
             'expired_documents': expired_documents,
             'unread_notifications': unread_notifications,
+            'urgent_documents': urgent_documents,
 
             # Monthly operational KPIs
             'tolls_month_cost': tolls_month_cost,

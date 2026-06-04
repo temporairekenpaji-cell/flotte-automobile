@@ -93,6 +93,14 @@ export default function Missions() {
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    
+    // Front-end validation for non-compliant vehicle
+    const selectedVehicle = vehicles.find(v => String(v.id) === String(form.vehicle))
+    if (selectedVehicle && selectedVehicle.is_compliant === false) {
+      showMsg(`Affectation impossible. Le véhicule ${selectedVehicle.registration || selectedVehicle.immatriculation} n'est pas conforme.`, 'error')
+      return
+    }
+
     try {
       const payload = {
         ...form,
@@ -114,7 +122,8 @@ export default function Missions() {
       setEditingId(null)
       loadData()
     } catch (err) {
-      showMsg("Erreur lors de l'enregistrement de la mission.", 'error')
+      const errMsg = err.response?.data?.vehicle?.[0] || err.response?.data?.non_field_errors?.[0] || "Erreur lors de l'enregistrement de la mission."
+      showMsg(errMsg, 'error')
     }
   }
 
@@ -264,7 +273,11 @@ export default function Missions() {
                   <label className="block text-xs font-semibold text-slate-400 mb-1.5">Véhicule *</label>
                   <select required name="vehicle" value={form.vehicle} onChange={handleChange} className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none">
                     <option value="">Sélectionner</option>
-                    {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration || v.immatriculation}</option>)}
+                    {vehicles.map(v => (
+                      <option key={v.id} value={v.id} disabled={v.is_compliant === false} className={v.is_compliant === false ? 'text-rose-400 bg-slate-900 font-semibold' : ''}>
+                        {v.registration || v.immatriculation} {v.is_compliant === false ? ' ⚠️ (Non conforme)' : ''}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>

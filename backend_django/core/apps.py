@@ -6,6 +6,7 @@ class CoreConfig(AppConfig):
     name = 'core'
 
     def ready(self):
+        import core.signals  # Register signals
         import os
         # Only run in the main process, not the reloader process
         if os.environ.get('RUN_MAIN') == 'true' or not os.environ.get('RUN_MAIN'):

@@ -215,6 +215,59 @@ export default function Dashboard() {
         </div>
 
         <div className="space-y-6">
+          {/* Documents à renouveler Widget */}
+          <div className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-6 shadow-lg shadow-slate-950/20">
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Conformité</p>
+                <h3 className="mt-2 text-xl font-semibold text-white">Documents à renouveler</h3>
+              </div>
+              <span className="rounded-full bg-slate-800 px-2.5 py-0.5 text-[10px] text-slate-400 font-medium">Urgent</span>
+            </div>
+            
+            <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+              {summary?.urgent_documents && summary.urgent_documents.length > 0 ? (
+                summary.urgent_documents.map((doc) => (
+                  <div key={doc.id} className="rounded-3xl border border-slate-800 bg-slate-950 p-4 space-y-2">
+                    <div className="flex items-start justify-between">
+                      <span className="text-xs font-semibold text-white">
+                        {doc.document_type_display}
+                      </span>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${
+                        doc.statut === 'expire' 
+                          ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' 
+                          : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                      }`}>
+                        {doc.statut === 'expire' ? 'Expiré' : 'Expire bientôt'}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col gap-1 text-[11px] text-slate-400">
+                      {doc.vehicle_plate && (
+                        <div className="flex items-center gap-1.5 font-mono">
+                          <FiTruck className="h-3 w-3 text-slate-500" />
+                          <span>Véhicule : <span className="text-white">{doc.vehicle_plate}</span></span>
+                        </div>
+                      )}
+                      {doc.chauffeur_name && (
+                        <div className="flex items-center gap-1.5">
+                          <FiUser className="h-3 w-3 text-slate-500" />
+                          <span>Chauffeur : <span className="text-emerald-400">{doc.chauffeur_name}</span></span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1.5 font-mono mt-1 text-[10px] text-slate-500">
+                        <FiClock className="h-3.5 w-3.5 text-slate-500" />
+                        <span>Échéance : <span className={doc.statut === 'expire' ? 'text-rose-400 font-semibold' : 'text-amber-400 font-semibold'}>{doc.date_expiration}</span></span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-500 text-center py-4">Aucun document à renouveler pour le moment.</p>
+              )}
+            </div>
+          </div>
+
           <div className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-6 shadow-lg shadow-slate-950/20">
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>

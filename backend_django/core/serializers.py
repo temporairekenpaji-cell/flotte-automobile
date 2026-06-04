@@ -72,15 +72,24 @@ class VehicleSerializer(serializers.ModelSerializer):
     model = serializers.CharField(source='modele', required=False, allow_blank=True, allow_null=True)
     status = serializers.CharField(source='etat', required=False)
     mileage = serializers.IntegerField(source='kilometrage', required=False, allow_null=True)
+    is_compliant = serializers.SerializerMethodField()
 
     class Meta:
         model = Vehicle
         fields = [
             'id', 'registration', 'brand', 'model', 'status', 'mileage',
             'type_vehicle', 'created_at', 'updated_at',
-            'immatriculation', 'marque', 'etat'
+            'immatriculation', 'marque', 'etat', 'is_compliant'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'immatriculation', 'marque', 'etat']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'immatriculation', 'marque', 'etat', 'is_compliant']
+
+    def get_is_compliant(self, obj):
+        from core.models import VehicleDocument
+        return not VehicleDocument.objects.filter(
+            vehicle=obj,
+            document_type__in=['assurance', 'visite_technique', 'licence_de_transport'],
+            statut='expire'
+        ).exists()
 
 
 # ─── VehicleDocument Serializer ──────────────────────────────────────────────
@@ -89,7 +98,8 @@ class VehicleDocumentSerializer(serializers.ModelSerializer):
     document_type_display = serializers.CharField(source='get_document_type_display', read_only=True)
     periode_display = serializers.CharField(source='get_periode_display', read_only=True)
     statut_display = serializers.CharField(source='get_statut_display', read_only=True)
-    vehicle_plate = serializers.CharField(source='vehicle.immatriculation', read_only=True)
+    vehicle_plate = serializers.CharField(source='vehicle.immatriculation', read_only=True, default=None)
+    chauffeur_name = serializers.CharField(source='chauffeur.nom', read_only=True, default=None)
 
     class Meta:
         model = VehicleDocument
@@ -99,7 +109,8 @@ class VehicleDocumentSerializer(serializers.ModelSerializer):
 # ─── Notification Serializer ──────────────────────────────────────────────────
 
 class NotificationSerializer(serializers.ModelSerializer):
-    vehicle_plate = serializers.CharField(source='vehicle.immatriculation', read_only=True)
+    vehicle_plate = serializers.CharField(source='vehicle.immatriculation', read_only=True, default=None)
+    chauffeur_name = serializers.CharField(source='chauffeur.nom', read_only=True, default=None)
     document_type_display = serializers.CharField(source='document.get_document_type_display', read_only=True, default=None)
 
     class Meta:
@@ -112,7 +123,8 @@ class NotificationSerializer(serializers.ModelSerializer):
 class RenewalHistorySerializer(serializers.ModelSerializer):
     document_type_display = serializers.CharField(source='document.get_document_type_display', read_only=True)
     modified_by_username = serializers.CharField(source='modified_by.username', read_only=True, default='Système')
-    vehicle_plate = serializers.CharField(source='document.vehicle.immatriculation', read_only=True)
+    vehicle_plate = serializers.CharField(source='document.vehicle.immatriculation', read_only=True, default=None)
+    chauffeur_name = serializers.CharField(source='document.chauffeur.nom', read_only=True, default=None)
 
     class Meta:
         model = RenewalHistory
@@ -163,6 +175,23 @@ class MissionSerializer(serializers.ModelSerializer):
             'vehicule', 'chauffeur', 'statut', 'heure_depart', 'heure_arrivee_prevue', 'heure_arrivee_reelle'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'vehicule', 'chauffeur', 'statut', 'heure_depart', 'heure_arrivee_prevue', 'heure_arrivee_reelle']
+
+    def validate(self, attrs):
+        vehicle = attrs.get('vehicule')
+        if vehicle:
+            # Check if any mandatory document (assurance, visite_technique, licence_de_transport) is expired
+            from core.models import VehicleDocument
+            expired_docs = VehicleDocument.objects.filter(
+                vehicle=vehicle,
+                document_type__in=['assurance', 'visite_technique', 'licence_de_transport'],
+                statut='expire'
+            )
+            if expired_docs.exists():
+                doc_names = ", ".join([doc.get_document_type_display() for doc in expired_docs])
+                raise serializers.ValidationError(
+                    {"vehicle": f"Affectation impossible. Le véhicule {vehicle.immatriculation} n'est pas conforme car les documents suivants sont expirés : {doc_names}."}
+                )
+        return attrs
 
     def get_duree_mission(self, obj):
         if obj.date_debut and obj.heure_depart and obj.date_fin and obj.heure_arrivee_reelle:
@@ -289,6 +318,7 @@ class DashboardStatsSerializer(serializers.Serializer):
     expiring_documents = serializers.IntegerField()
     expired_documents = serializers.IntegerField()
     unread_notifications = serializers.IntegerField()
+    urgent_documents = serializers.ListField(child=serializers.DictField(), required=False)
 
     # New monthly operational KPIs
     tolls_month_cost = serializers.FloatField()

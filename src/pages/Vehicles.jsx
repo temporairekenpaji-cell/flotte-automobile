@@ -3,6 +3,7 @@ import { FiPlus, FiSearch, FiTrash2, FiEdit2, FiCalendar, FiClock, FiCheckCircle
 import DataTable from '../components/DataTable'
 import { getVehicles, createVehicle, updateVehicle, deleteVehicle } from '../services/vehicles'
 import { getDocuments, createDocument, updateDocument, deleteDocument, renewDocument, getRenewalHistory } from '../services/documents'
+import { getDrivers } from '../services/drivers'
 import { useFetch } from '../hooks/useFetch'
 
 const initialVehicleForm = {
@@ -16,6 +17,8 @@ const initialVehicleForm = {
 
 const initialDocumentForm = {
   document_type: 'visite_technique',
+  numero_document: '',
+  chauffeur: '',
   date_debut: '',
   date_expiration: '',
   periode: '1_an',
@@ -35,13 +38,15 @@ const documentTypesMap = {
   assurance: 'Assurance',
   carte_bleue: 'Carte bleue',
   licence_de_transport: 'Licence de transport',
-  taxe: 'Taxe'
+  taxe: 'Taxe',
+  permis_de_conduire: 'Permis de conduire'
 }
 
 const periodeMap = {
   '3_mois': '3 mois',
   '6_mois': '6 mois',
-  '1_an': '1 an'
+  '1_an': '1 an',
+  'autre': 'Autre'
 }
 
 export default function Vehicles() {
@@ -52,6 +57,7 @@ export default function Vehicles() {
   // Lists
   const [documents, setDocuments] = useState([])
   const [renewalHistory, setRenewalHistory] = useState([])
+  const [drivers, setDrivers] = useState([])
 
   // Filters
   const [search, setSearch] = useState('')
@@ -102,6 +108,16 @@ export default function Vehicles() {
     }
   }
 
+  // Fetch Chauffeurs list
+  const fetchDrivers = async () => {
+    try {
+      const response = await run(getDrivers())
+      setDrivers(response.results || response)
+    } catch (err) {
+      console.error('Erreur lors du chargement des chauffeurs.', err)
+    }
+  }
+
   // Fetch Documents for selected vehicle
   const fetchVehicleDocuments = async (vehicleId) => {
     if (!vehicleId) return
@@ -126,6 +142,7 @@ export default function Vehicles() {
 
   useEffect(() => {
     fetchVehicles()
+    fetchDrivers()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, typeVehicle, expiredDocsOnly])
 
@@ -208,7 +225,8 @@ export default function Vehicles() {
     try {
       const payload = {
         ...documentForm,
-        vehicle: activeVehicle.id
+        vehicle: activeVehicle ? activeVehicle.id : null,
+        chauffeur: documentForm.chauffeur || null
       }
       if (selectedDocumentForEdit) {
         await run(updateDocument(selectedDocumentForEdit.id, payload))
@@ -459,7 +477,14 @@ export default function Vehicles() {
                   key: 'registration', 
                   header: 'Immatriculation',
                   render: (item) => (
-                    <span className="font-mono font-medium text-white">{item.registration}</span>
+                    <div className="flex flex-col gap-1">
+                      <span className="font-mono font-medium text-white">{item.registration}</span>
+                      {item.is_compliant === false && (
+                        <span className="inline-flex items-center gap-0.5 rounded bg-rose-500/10 px-1.5 py-0.5 text-[9px] font-bold text-rose-400 border border-rose-500/20 w-fit">
+                          Non conforme
+                        </span>
+                      )}
+                    </div>
                   )
                 },
                 { 
@@ -517,15 +542,23 @@ export default function Vehicles() {
             <div className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-6 shadow-lg shadow-slate-950/20 space-y-6">
               
               {/* Header Details */}
-              <div className="flex items-start justify-between border-b border-slate-800 pb-4">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Véhicule Sélectionné</span>
-                  <h3 className="text-2xl font-bold text-white mt-0.5 font-mono">{activeVehicle.registration}</h3>
-                  <p className="text-sm text-slate-400 mt-1">
-                    {activeVehicle.brand} {activeVehicle.model} — {activeVehicle.type_vehicle === 'tracteur' ? 'Tracteur' : 'Remorque'}
-                  </p>
+              <div className="flex flex-col gap-3 border-b border-slate-800 pb-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Véhicule Sélectionné</span>
+                    <h3 className="text-2xl font-bold text-white mt-0.5 font-mono">{activeVehicle.registration}</h3>
+                    <p className="text-sm text-slate-400 mt-1">
+                      {activeVehicle.brand} {activeVehicle.model} — {activeVehicle.type_vehicle === 'tracteur' ? 'Tracteur' : 'Remorque'}
+                    </p>
+                  </div>
+                  {getVehicleStatusBadge(activeVehicle.status)}
                 </div>
-                {getVehicleStatusBadge(activeVehicle.status)}
+                {activeVehicle.is_compliant === false && (
+                  <div className="flex items-center gap-2 rounded-2xl bg-rose-500/10 border border-rose-500/20 p-3 text-xs font-medium text-rose-400">
+                    <FiAlertTriangle className="h-4 w-4 shrink-0 text-rose-500" />
+                    <span>Attention : Ce véhicule est non conforme en raison de documents obligatoires expirés. Affectation aux missions bloquée.</span>
+                  </div>
+                )}
               </div>
 
               {/* Tab Navigation */}
@@ -629,6 +662,14 @@ export default function Vehicles() {
                               <h5 className="font-semibold text-white text-sm">
                                 {documentTypesMap[doc.document_type] || doc.document_type}
                               </h5>
+                              {doc.numero_document && (
+                                <p className="text-xs text-slate-400 font-mono mt-0.5">N° {doc.numero_document}</p>
+                              )}
+                              {doc.chauffeur_name && (
+                                <p className="text-xs text-emerald-400 flex items-center gap-1 mt-1">
+                                  <FiUser className="h-3.5 w-3.5" /> Chauffeur : {doc.chauffeur_name}
+                                </p>
+                              )}
                               <p className="text-[10px] text-slate-500 mt-0.5">Périodicité: {periodeMap[doc.periode] || doc.periode}</p>
                             </div>
                             {getStatusBadge(doc.statut)}
@@ -702,6 +743,7 @@ export default function Vehicles() {
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-semibold text-white">
                                 {documentTypesMap[item.document_type_display] || item.document_type_display}
+                                {item.chauffeur_name && ` (Chauffeur: ${item.chauffeur_name})`}
                               </span>
                               <span className="text-[10px] text-slate-500 font-mono">
                                 {new Date(item.modified_at).toLocaleDateString()}
@@ -711,6 +753,12 @@ export default function Vehicles() {
                             <p className="text-xs text-slate-400">
                               L'échéance est passée de <span className="font-mono text-rose-400 font-medium">{item.ancienne_date_expiration}</span> à <span className="font-mono text-emerald-400 font-medium">{item.nouvelle_date_expiration}</span>.
                             </p>
+
+                            {item.commentaire && (
+                              <p className="text-xs text-slate-400 italic bg-slate-950/40 p-2 rounded-xl border border-slate-800">
+                                "{item.commentaire}"
+                              </p>
+                            )}
 
                             <div className="flex items-center gap-1 text-[10px] text-slate-500 font-medium">
                               <FiUser className="h-3 w-3" /> Modifié par : <span className="text-slate-400">{item.modified_by_username}</span>
@@ -874,6 +922,31 @@ export default function Vehicles() {
                 </select>
               </div>
 
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Numéro du document</label>
+                <input
+                  type="text"
+                  placeholder="EX: POL-987654"
+                  value={documentForm.numero_document || ''}
+                  onChange={(e) => setDocumentForm({ ...documentForm, numero_document: e.target.value })}
+                  className="mt-2 w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none focus:border-emerald-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Chauffeur concerné (Optionnel)</label>
+                <select
+                  value={documentForm.chauffeur || ''}
+                  onChange={(e) => setDocumentForm({ ...documentForm, chauffeur: e.target.value || '' })}
+                  className="mt-2 w-full rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none cursor-pointer focus:border-emerald-500"
+                >
+                  <option value="">-- Aucun (Lié uniquement au véhicule) --</option>
+                  {drivers.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Date de début</label>
@@ -907,6 +980,7 @@ export default function Vehicles() {
                   <option value="3_mois">3 mois</option>
                   <option value="6_mois">6 mois</option>
                   <option value="1_an">1 an</option>
+                  <option value="autre">Autre</option>
                 </select>
               </div>
 
@@ -989,6 +1063,7 @@ export default function Vehicles() {
                   <option value="3_mois">3 mois</option>
                   <option value="6_mois">6 mois</option>
                   <option value="1_an">1 an</option>
+                  <option value="autre">Autre</option>
                 </select>
               </div>
 

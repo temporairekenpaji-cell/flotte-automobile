@@ -46,7 +46,7 @@ class Vehicle(models.Model):
 
 
 class VehicleDocument(models.Model):
-    """Administrative document associated with a vehicle."""
+    """Administrative document associated with a vehicle or driver."""
     DOCUMENT_TYPE_CHOICES = [
         ('visite_technique', 'Visite technique'),
         ('carte_grise', 'Carte grise'),
@@ -54,11 +54,13 @@ class VehicleDocument(models.Model):
         ('carte_bleue', 'Carte bleue'),
         ('licence_de_transport', 'Licence de transport'),
         ('taxe', 'Taxe'),
+        ('permis_de_conduire', 'Permis de conduire'),
     ]
     PERIODE_CHOICES = [
         ('3_mois', '3 mois'),
         ('6_mois', '6 mois'),
         ('1_an', '1 an'),
+        ('autre', 'Autre'),
     ]
     STATUT_CHOICES = [
         ('valide', 'Valide'),
@@ -66,8 +68,10 @@ class VehicleDocument(models.Model):
         ('expire', 'Expiré'),
     ]
     
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='documents')
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='documents', null=True, blank=True)
+    chauffeur = models.ForeignKey('Chauffeur', on_delete=models.CASCADE, related_name='documents', null=True, blank=True)
     document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPE_CHOICES)
+    numero_document = models.CharField(max_length=100, blank=True, null=True)
     date_debut = models.DateField()
     date_expiration = models.DateField()
     periode = models.CharField(max_length=20, choices=PERIODE_CHOICES)
@@ -77,24 +81,28 @@ class VehicleDocument(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.get_document_type_display()} - {self.vehicle.immatriculation}"
+        target = self.vehicle.immatriculation if self.vehicle else (self.chauffeur.nom if self.chauffeur else "Inconnu")
+        return f"{self.get_document_type_display()} - {target}"
 
     class Meta:
         ordering = ['-date_expiration']
-        verbose_name = 'Document Véhicule'
-        verbose_name_plural = 'Documents Véhicule'
+        verbose_name = 'Document'
+        verbose_name_plural = 'Documents'
 
 
 class Notification(models.Model):
     """Notification for administrative expirations."""
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='notifications')
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
+    chauffeur = models.ForeignKey('Chauffeur', on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
     document = models.ForeignKey(VehicleDocument, on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
     message = models.TextField()
     is_read = models.BooleanField(default=False)
+    is_closed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Notification - {self.vehicle.immatriculation} - {self.message[:30]}"
+        target = self.vehicle.immatriculation if self.vehicle else (self.chauffeur.nom if self.chauffeur else "Inconnu")
+        return f"Notification - {target} - {self.message[:30]}"
 
     class Meta:
         ordering = ['-created_at']
@@ -109,6 +117,7 @@ class RenewalHistory(models.Model):
     nouvelle_date_expiration = models.DateField()
     modified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     modified_at = models.DateTimeField(auto_now_add=True)
+    commentaire = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"Renouvellement {self.document.get_document_type_display()} - {self.modified_at}"
