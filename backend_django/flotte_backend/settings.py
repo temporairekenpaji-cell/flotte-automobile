@@ -120,8 +120,8 @@ def clean_database_url(url):
 
 if os.getenv('DATABASE_URL'):
     cleaned_db_url = clean_database_url(os.getenv('DATABASE_URL'))
-    DATABASES['default'] = dj_database_url.config(
-        default=cleaned_db_url,
+    DATABASES['default'] = dj_database_url.parse(
+        cleaned_db_url,
         conn_max_age=600,
         conn_health_checks=True,
         ssl_require=True
