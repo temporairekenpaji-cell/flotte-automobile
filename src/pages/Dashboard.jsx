@@ -142,14 +142,14 @@ export default function Dashboard() {
     <div className="space-y-8">
       {/* Title */}
       <div>
-        <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Vue d'ensemble</p>
-        <h2 className="mt-2 text-3xl font-semibold text-white">Tableau de Bord Flotte</h2>
+        <p className="text-xs sm:text-sm uppercase tracking-[0.3em] text-slate-500">Vue d'ensemble</p>
+        <h2 className="mt-2 text-2xl sm:text-3xl font-semibold text-white">Tableau de Bord Flotte</h2>
       </div>
 
       {/* Operational Stats Section */}
       <div className="space-y-4">
         <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-slate-400">Statistiques Opérationnelles</h3>
-        <section className="grid gap-6 xl:grid-cols-4 lg:grid-cols-2">
+        <section className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
           {operationalCards.map((item) => (
             <StatCard key={item.label} {...item} />
           ))}
@@ -159,7 +159,7 @@ export default function Dashboard() {
       {/* Monthly Operations & Finances Section */}
       <div className="space-y-4">
         <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-slate-400">Indicateurs de Performance Mensuelle</h3>
-        <section className="grid gap-6 xl:grid-cols-4 lg:grid-cols-2">
+        <section className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
           {monthlyKpis.map((item) => (
             <div 
               key={item.label}
@@ -175,7 +175,7 @@ export default function Dashboard() {
       {/* Administrative Stats Section */}
       <div className="space-y-4">
         <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-slate-400">Suivi Administratif & Documents</h3>
-        <section className="grid gap-6 xl:grid-cols-4 lg:grid-cols-2">
+        <section className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
           {adminCards.map((item) => (
             <div 
               key={item.label}
@@ -188,7 +188,7 @@ export default function Dashboard() {
         </section>
       </div>
 
-      <section className="grid gap-6 xl:grid-cols-[1.4fr_0.6fr]">
+      <section className="grid gap-4 sm:gap-6 grid-cols-1 xl:grid-cols-[1.4fr_0.6fr]">
         <div className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-6 shadow-lg shadow-slate-950/20">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>

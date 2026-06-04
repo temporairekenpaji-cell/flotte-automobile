@@ -43,7 +43,7 @@ export default function Statistics() {
         <div className="rounded-3xl bg-rose-950 p-6 text-rose-300">Erreur lors de la récupération des rapports.</div>
       ) : (
         <div className="space-y-8">
-          <section className="grid gap-6 xl:grid-cols-4 lg:grid-cols-2">
+          <section className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label="Taux de disponibilité"
               value={`${stats?.fleet_utilization ?? 0}%`}
@@ -70,8 +70,8 @@ export default function Statistics() {
             />
           </section>
 
-          <section className="grid gap-6 lg:grid-cols-2">
-            <div className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-8 shadow-lg shadow-slate-950/20">
+          <section className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
+            <div className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-6 sm:p-8 shadow-lg shadow-slate-950/20">
               <h3 className="text-xl font-semibold text-white">Répartition de la flotte</h3>
               <p className="mt-1 text-sm text-slate-400">Ratios calculés en temps réel depuis la base PostgreSQL</p>
               <div className="mt-8 space-y-6">
@@ -105,16 +105,16 @@ export default function Statistics() {
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-8 shadow-lg shadow-slate-950/20">
+            <div className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-6 sm:p-8 shadow-lg shadow-slate-950/20">
               <h3 className="text-xl font-semibold text-white">Synthèse Générale</h3>
-              <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              <div className="mt-8 grid gap-4 grid-cols-1 sm:grid-cols-2">
                 <div className="rounded-3xl border border-slate-800 bg-slate-950 p-6">
                   <p className="text-sm uppercase tracking-wider text-slate-500">Chauffeurs Enregistrés</p>
-                  <p className="mt-3 text-4xl font-bold text-white">{stats?.total_drivers ?? 0}</p>
+                  <p className="mt-3 text-3xl sm:text-4xl font-bold text-white">{stats?.total_drivers ?? 0}</p>
                 </div>
                 <div className="rounded-3xl border border-slate-800 bg-slate-950 p-6">
                   <p className="text-sm uppercase tracking-wider text-slate-500">Missions Totales</p>
-                  <p className="mt-3 text-4xl font-bold text-white">{stats?.total_missions ?? 0}</p>
+                  <p className="mt-3 text-3xl sm:text-4xl font-bold text-white">{stats?.total_missions ?? 0}</p>
                 </div>
               </div>
             </div>

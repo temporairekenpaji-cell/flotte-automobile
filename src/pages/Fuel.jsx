@@ -106,9 +106,9 @@ export default function Fuel() {
 
       {message ? <div className="rounded-3xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-200">{message}</div> : null}
 
-      <div className="grid gap-6 xl:grid-cols-[0.65fr_0.35fr]">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 xl:grid-cols-[0.65fr_0.35fr]">
         <div className="space-y-6">
-          <div className="grid gap-6 sm:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-3">
             <div className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-6 shadow-lg shadow-slate-950/20">
               <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Consommation</p>
               <p className="mt-4 text-4xl font-semibold text-white">{summary.consumption.toLocaleString('fr-FR')} L</p>

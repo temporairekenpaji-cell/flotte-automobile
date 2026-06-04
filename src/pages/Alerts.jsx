@@ -249,7 +249,7 @@ export default function Alerts() {
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[0.7fr_0.3fr]">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 xl:grid-cols-[0.7fr_0.3fr]">
         <div className="space-y-6">
           <div className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-6 shadow-lg shadow-slate-950/20">
             <div className="mb-6 flex items-center justify-between gap-4">

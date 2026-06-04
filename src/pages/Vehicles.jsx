@@ -365,7 +365,7 @@ export default function Vehicles() {
       )}
 
       {/* Main Layout Grid */}
-      <div className="grid gap-6 xl:grid-cols-[0.55fr_0.45fr]">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 xl:grid-cols-[0.55fr_0.45fr]">
         
         {/* LEFT COLUMN: Vehicle search & list */}
         <div className="space-y-6">

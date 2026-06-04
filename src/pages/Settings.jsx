@@ -68,13 +68,13 @@ export default function Settings() {
         </div>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[0.6fr_0.4fr]">
-        <div className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-8 shadow-lg shadow-slate-950/20">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-[0.6fr_0.4fr]">
+        <div className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-6 sm:p-8 shadow-lg shadow-slate-950/20">
           <h3 className="text-xl font-semibold text-white">Profil Utilisateur</h3>
           <p className="mt-1 text-sm text-slate-400">Gérez vos informations de connexion et vos accès.</p>
 
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm text-slate-300">Prénom</label>
                 <input
@@ -152,7 +152,7 @@ export default function Settings() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-8 shadow-lg shadow-slate-950/20">
+          <div className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-6 sm:p-8 shadow-lg shadow-slate-950/20">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-emerald-500/20 text-emerald-400">
                 <FiShield className="h-6 w-6" />
