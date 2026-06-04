@@ -85,8 +85,43 @@ DATABASES = {
     }
 }
 
+import urllib.parse
+
+def clean_database_url(url):
+    if not url:
+        return url
+    try:
+        prefix = ""
+        if url.startswith("postgresql://"):
+            prefix = "postgresql://"
+            url_to_parse = url[len("postgresql://"):]
+        elif url.startswith("postgres://"):
+            prefix = "postgres://"
+            url_to_parse = url[len("postgres://"):]
+        else:
+            return url
+        
+        if "@" not in url_to_parse:
+            return url
+            
+        parts = url_to_parse.rsplit("@", 1)
+        credentials = parts[0]
+        host_and_db = parts[1]
+        
+        if ":" in credentials:
+            cred_parts = credentials.split(":", 1)
+            username = cred_parts[0]
+            password = cred_parts[1]
+            quoted_password = urllib.parse.quote(password, safe='')
+            return f"{prefix}{username}:{quoted_password}@{host_and_db}"
+    except Exception:
+        pass
+    return url
+
 if os.getenv('DATABASE_URL'):
+    cleaned_db_url = clean_database_url(os.getenv('DATABASE_URL'))
     DATABASES['default'] = dj_database_url.config(
+        default=cleaned_db_url,
         conn_max_age=600,
         conn_health_checks=True,
         ssl_require=True
