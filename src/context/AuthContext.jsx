@@ -1,5 +1,6 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from 'react'
 import { login as authLogin, logout as authLogout } from '../services/auth'
+import api from '../services/api'
 
 export const AuthContext = createContext({
   user: null,
@@ -15,11 +16,27 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const fetchProfile = async (tokenVal) => {
+      try {
+        const response = await api.get('/users/me/', {
+          headers: { Authorization: `Bearer ${tokenVal}` }
+        })
+        if (response.data) {
+          const userProfile = response.data
+          window.localStorage.setItem('fleet_user', JSON.stringify(userProfile))
+          setUser(userProfile)
+        }
+      } catch (err) {
+        console.error("Impossible de rafraîchir le profil utilisateur :", err)
+      }
+    }
+
     const storedToken = window.localStorage.getItem('fleet_token')
     const storedUser = window.localStorage.getItem('fleet_user')
     if (storedToken) {
       setToken(storedToken)
       setUser(storedUser ? JSON.parse(storedUser) : { email: '' })
+      fetchProfile(storedToken)
     }
     setLoading(false)
   }, [])

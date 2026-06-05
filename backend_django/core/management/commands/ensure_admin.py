@@ -29,16 +29,25 @@ class Command(BaseCommand):
         admin_exists = User.objects.filter(role='admin').exists() or User.objects.filter(is_superuser=True).exists()
 
         if admin_exists:
+            user = User.objects.filter(role='admin').first() or User.objects.filter(is_superuser=True).first()
+            updated = False
+            if user.first_name != 'Damaris':
+                user.first_name = 'Damaris'
+                updated = True
+
             if options['reset']:
-                user = User.objects.filter(role='admin').first() or User.objects.filter(is_superuser=True).first()
                 user.email = email
                 user.username = username
                 user.role = 'admin'
                 user.is_staff = True
                 user.is_superuser = True
                 user.set_password(password)
-                user.save()
+                updated = True
                 self.stdout.write(self.style.SUCCESS(f'Administrateur réinitialisé : {user.email}'))
+
+            if updated:
+                user.save()
+                self.stdout.write(self.style.SUCCESS('Compte administrateur mis à jour avec le prénom Damaris.'))
             else:
                 self.stdout.write(self.style.WARNING('Compte admin déjà présent — aucun changement.'))
             return
@@ -48,6 +57,7 @@ class Command(BaseCommand):
             username=username,
             email=email,
             password=password,
+            first_name='Damaris',
             role='admin',
             is_staff=True,
             is_superuser=True,
