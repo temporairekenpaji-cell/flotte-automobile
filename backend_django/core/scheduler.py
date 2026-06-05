@@ -37,16 +37,10 @@ def check_and_create_notifications(document_id=None):
         
         if diff_days <= 0:
             new_status = 'expire'
+        elif diff_days <= 30:
+            new_status = 'expire_bientot'
         else:
-            # Check period rules:
-            # 1 year and 6 months: alert 3 months before (90 days)
-            # 3 months and other: alert 1 month before (30 days)
-            if doc.periode in ['1_an', '6_mois']:
-                if diff_days <= 90:
-                    new_status = 'expire_bientot'
-            elif doc.periode in ['3_mois', 'autre']:
-                if diff_days <= 30:
-                    new_status = 'expire_bientot'
+            new_status = 'valide'
         
         if old_status != new_status:
             doc.statut = new_status
@@ -73,13 +67,25 @@ def check_and_create_notifications(document_id=None):
         else:
             target_str = "concerné"
 
-        if new_status == 'expire_bientot':
-            should_notify = True
-            months_text = "3 mois" if doc.periode in ['1_an', '6_mois'] else "1 mois"
-            message = f"Le document {doc_type_name} {target_str} expirera dans {months_text}. Veuillez procéder à son renouvellement."
-        elif new_status == 'expire':
+        if new_status == 'expire':
             should_notify = True
             message = f"ATTENTION : Le document {doc_type_name} {target_str} est expiré. Le renouvellement est obligatoire."
+        elif new_status == 'expire_bientot':
+            if diff_days == 1:
+                should_notify = True
+                message = f"URGENT : Le document {doc_type_name} {target_str} expire demain. Veuillez procéder à son renouvellement."
+            elif diff_days <= 3:
+                should_notify = True
+                message = f"Le document {doc_type_name} {target_str} expirera dans 3 jours. Veuillez prévoir son renouvellement."
+            elif diff_days <= 7:
+                should_notify = True
+                message = f"Le document {doc_type_name} {target_str} expirera dans 7 jours. Veuillez prévoir son renouvellement."
+            elif diff_days <= 14:
+                should_notify = True
+                message = f"Le document {doc_type_name} {target_str} expirera dans 2 semaines. Veuillez prévoir son renouvellement."
+            elif diff_days <= 30:
+                should_notify = True
+                message = f"Le document {doc_type_name} {target_str} expirera dans 1 mois. Veuillez prévoir son renouvellement."
             
         if should_notify:
             # Clôturer les anciennes notifications obsolètes (ex: passer de bientot_expire à expire)
