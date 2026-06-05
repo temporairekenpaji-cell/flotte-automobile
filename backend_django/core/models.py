@@ -3,15 +3,18 @@ from django.db import models
 
 
 class User(AbstractUser):
-    """Custom user model with role field."""
+    """Compte administrateur unique de l'application."""
     ROLE_CHOICES = [
-        ('admin', 'Admin'),
-        ('user', 'User'),
+        ('admin', 'Administrateur'),
     ]
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='admin')
 
     def __str__(self):
-        return f"{self.username} ({self.role})"
+        return self.username
+
+    @property
+    def is_app_admin(self):
+        return self.role == 'admin' or self.is_superuser
 
 
 class Vehicle(models.Model):
@@ -135,6 +138,7 @@ class Chauffeur(models.Model):
         ('inactive', 'Inactif'),
         ('suspended', 'Suspendu'),
     ]
+    user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='chauffeur_profile')
     nom = models.CharField(max_length=200)
     telephone = models.CharField(max_length=20, blank=True, null=True)
     permis = models.CharField(max_length=50, unique=True)
@@ -335,4 +339,22 @@ class MaintenancePart(models.Model):
         ordering = ['nom']
         verbose_name = 'Pièce utilisée'
         verbose_name_plural = 'Pièces utilisées'
+
+
+class AuditLog(models.Model):
+    """Audit log model to track CRUD operations on critical data."""
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs')
+    action = models.CharField(max_length=50)  # 'creation', 'modification', 'suppression'
+    module = models.CharField(max_length=100)
+    details = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        username = self.user.username if self.user else "Système"
+        return f"{username} - {self.action} on {self.module} ({self.created_at})"
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Journal d\'audit'
+        verbose_name_plural = 'Journaux d\'audit'
 

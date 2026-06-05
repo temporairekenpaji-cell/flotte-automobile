@@ -30,10 +30,11 @@ export function AuthProvider({ children }) {
     if (!savedToken) {
       throw new Error('Authentification échouée')
     }
+    const userProfile = response.user || { email }
     window.localStorage.setItem('fleet_token', savedToken)
-    window.localStorage.setItem('fleet_user', JSON.stringify({ email }))
+    window.localStorage.setItem('fleet_user', JSON.stringify(userProfile))
     setToken(savedToken)
-    setUser({ email })
+    setUser(userProfile)
     return savedToken
   }, [])
 

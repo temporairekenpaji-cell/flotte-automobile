@@ -1,7 +1,10 @@
 from rest_framework import serializers
-from django.contrib.auth.password_validation import validate_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import User, Vehicle, VehicleDocument, Notification, RenewalHistory, Chauffeur, Mission, Carburant, Maintenance, SparePart, Peage, ControleRoutier, MaintenancePart
+from .models import (
+    User, Vehicle, VehicleDocument, Notification, RenewalHistory, Chauffeur,
+    Mission, Carburant, Maintenance, SparePart, Peage, ControleRoutier,
+    MaintenancePart, AuditLog,
+)
 
 
 # ─── Auth / JWT Custom Serializer ─────────────────────────────────────────────
@@ -26,8 +29,19 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 attrs['username'] = user.username
 
         data = super().validate(attrs)
-        # React AuthContext expects response.token or response.access
+        user = self.user
+        if not (user.is_app_admin if hasattr(user, 'is_app_admin') else user.role == 'admin' or user.is_superuser):
+            raise serializers.ValidationError(
+                {'detail': 'Accès réservé au compte administrateur.'}
+            )
         data['token'] = data['access']
+        data['user'] = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+        }
         return data
 
 
@@ -36,30 +50,24 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'is_active', 'date_joined']
-        read_only_fields = ['id', 'date_joined']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'date_joined']
+        read_only_fields = ['id', 'username', 'date_joined']
 
 
-class UserCreateSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-    password2 = serializers.CharField(write_only=True, required=True)
+class AuditLogSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True, default=None)
+    user_email = serializers.EmailField(source='user.email', read_only=True, default=None)
 
     class Meta:
-        model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'password', 'password2']
-
-    def validate(self, attrs):
-        if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError({"password": "Les mots de passe ne correspondent pas."})
-        return attrs
-
-    def create(self, validated_data):
-        validated_data.pop('password2')
-        password = validated_data.pop('password')
-        user = User(**validated_data)
-        user.set_password(password)
-        user.save()
-        return user
+        model = AuditLog
+        fields = [
+            'id', 'user', 'username', 'user_email', 'action', 'module',
+            'details', 'created_at',
+        ]
+        read_only_fields = [
+            'id', 'user', 'username', 'user_email', 'action', 'module',
+            'details', 'created_at',
+        ]
 
 
 # ─── Vehicule Serializers ─────────────────────────────────────────────────────

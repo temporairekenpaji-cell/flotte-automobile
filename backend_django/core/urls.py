@@ -1,15 +1,14 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    UserViewSet, VehicleViewSet, ChauffeurViewSet,
+    AdminProfileView, VehicleViewSet, ChauffeurViewSet,
     MissionViewSet, CarburantViewSet, MaintenanceViewSet,
     VehicleDocumentViewSet, NotificationViewSet, RenewalHistoryViewSet,
-    DashboardStatsView,
+    DashboardStatsView, AuditLogViewSet,
     PeageViewSet, ControleRoutierViewSet, MaintenancePartViewSet, SparePartViewSet
 )
 
 router = DefaultRouter()
-router.register(r'users', UserViewSet, basename='user')
 router.register(r'vehicules', VehicleViewSet, basename='vehicule_fr')
 router.register(r'vehicles', VehicleViewSet, basename='vehicule_en')
 router.register(r'documents', VehicleDocumentViewSet, basename='document')
@@ -26,9 +25,11 @@ router.register(r'peages', PeageViewSet, basename='peage')
 router.register(r'controles-routiers', ControleRoutierViewSet, basename='controle-routier')
 router.register(r'maintenance-parts', MaintenancePartViewSet, basename='maintenance-part')
 router.register(r'spare-parts', SparePartViewSet, basename='spare-part')
+router.register(r'audit-logs', AuditLogViewSet, basename='audit-log')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('users/me/', AdminProfileView.as_view(), name='admin-profile'),
     path('dashboard/', DashboardStatsView.as_view(), name='dashboard-en'),
     path('dashboard/stats/', DashboardStatsView.as_view(), name='dashboard-stats'),
 ]

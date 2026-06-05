@@ -21,8 +21,20 @@ export default function Login() {
     try {
       await login(email, password)
       navigate('/')
-    } catch {
-      setError('Échec de connexion. Vérifiez vos identifiants et réessayez.')
+    } catch (err) {
+      const data = err?.response?.data
+      if (!err?.response) {
+        setError(
+          'Impossible de joindre le serveur API. Démarrez Django (port 8000) ou vérifiez VITE_API_BASE_URL dans .env.development.',
+        )
+      } else if (data?.detail) {
+        setError(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail))
+      } else if (data?.non_field_errors) {
+        setError(Array.isArray(data.non_field_errors) ? data.non_field_errors.join(' ') : String(data.non_field_errors))
+      } else {
+        const parts = Object.entries(data || {}).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(' ') : v}`)
+        setError(parts.length ? parts.join('\n') : 'Identifiants incorrects ou compte non autorisé.')
+      }
     } finally {
       setLoading(false)
     }
@@ -34,7 +46,7 @@ export default function Login() {
         <div className="mb-8 space-y-3 text-center">
           <p className="text-sm uppercase tracking-[0.35em] text-emerald-400/80">Application de gestion de flotte</p>
           <h1 className="text-4xl font-semibold text-white">Connexion</h1>
-          <p className="text-slate-400">Accédez à votre tableau de bord transport et commencez la surveillance en temps réel.</p>
+          <p className="text-slate-400">Connexion administrateur — accédez au tableau de bord après authentification.</p>
         </div>
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>

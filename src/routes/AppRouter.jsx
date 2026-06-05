@@ -16,21 +16,39 @@ import Statistics from '../pages/Statistics'
 import Settings from '../pages/Settings'
 import NotFound from '../pages/NotFound'
 
+function AuthLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+      <div className="rounded-3xl border border-slate-800 bg-slate-900/95 p-8 shadow-xl shadow-slate-950/30">
+        <p className="text-lg font-semibold text-emerald-400">Chargement...</p>
+      </div>
+    </div>
+  )
+}
+
 function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth()
+  const { user, token, loading } = useAuth()
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/95 p-8 shadow-xl shadow-slate-950/30">
-          <p className="text-lg font-semibold text-emerald-400">Chargement sécurisé de l'espace de travail...</p>
-        </div>
-      </div>
-    )
+    return <AuthLoading />
   }
 
-  if (!user) {
+  if (!user || !token) {
     return <Navigate to="/login" replace />
+  }
+
+  return children
+}
+
+function GuestRoute({ children }) {
+  const { user, token, loading } = useAuth()
+
+  if (loading) {
+    return <AuthLoading />
+  }
+
+  if (user && token) {
+    return <Navigate to="/" replace />
   }
 
   return children
@@ -49,7 +67,8 @@ function DefaultRoute() {
 export default function AppRouter() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+      <Route path="/register" element={<Navigate to="/login" replace />} />
       <Route element={<DefaultRoute />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/vehicles" element={<Vehicles />} />

@@ -7,15 +7,15 @@ import SplashScreen from './components/SplashScreen'
 function App() {
   const [showSplash, setShowSplash] = useState(true)
 
-  if (showSplash) {
-    return <SplashScreen onFinish={() => setShowSplash(false)} />
-  }
-
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRouter />
-      </AuthProvider>
+      {showSplash ? (
+        <SplashScreen onFinish={() => setShowSplash(false)} />
+      ) : (
+        <AuthProvider>
+          <AppRouter />
+        </AuthProvider>
+      )}
     </BrowserRouter>
   )
 }

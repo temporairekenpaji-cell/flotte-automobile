@@ -1,15 +1,12 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Vehicle, VehicleDocument, Notification, RenewalHistory, Chauffeur, Mission, Carburant, Maintenance
+from .models import User, Vehicle, VehicleDocument, Notification, RenewalHistory, Chauffeur, Mission, Carburant, Maintenance, AuditLog
 
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ['username', 'email', 'role', 'is_active', 'date_joined']
-    list_filter = ['role', 'is_active']
-    fieldsets = UserAdmin.fieldsets + (
-        ('Rôle', {'fields': ('role',)}),
-    )
+    list_display = ['username', 'email', 'is_active', 'is_staff', 'date_joined']
+    list_filter = ['is_active', 'is_staff']
 
 
 @admin.register(Vehicle)
@@ -42,8 +39,9 @@ class RenewalHistoryAdmin(admin.ModelAdmin):
 
 @admin.register(Chauffeur)
 class ChauffeurAdmin(admin.ModelAdmin):
-    list_display = ['nom', 'telephone', 'permis', 'created_at']
+    list_display = ['nom', 'telephone', 'permis', 'user', 'created_at']
     search_fields = ['nom', 'telephone', 'permis']
+    list_filter = ['statut']
 
 
 @admin.register(Mission)
@@ -65,3 +63,11 @@ class MaintenanceAdmin(admin.ModelAdmin):
     list_display = ['vehicule', 'type_maintenance', 'cout', 'date']
     list_filter = ['date', 'type_maintenance']
     search_fields = ['vehicule__immatriculation', 'type_maintenance']
+
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ['user', 'action', 'module', 'created_at']
+    list_filter = ['action', 'module', 'created_at']
+    search_fields = ['user__username', 'module', 'details']
+    readonly_fields = ['user', 'action', 'module', 'details', 'created_at']
