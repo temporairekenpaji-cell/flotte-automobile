@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { FiEye, FiEyeOff } from 'react-icons/fi'
 
@@ -10,14 +10,20 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [showEmail, setShowEmail] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
+  const [accepted, setAccepted] = useState(false)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError(null)
-    setLoading(true)
 
+    if (!accepted) {
+      setError("Vous devez accepter les Conditions d'utilisation et la Politique de confidentialité pour continuer.")
+      return
+    }
+
+    setLoading(true)
     try {
       await login(email, password)
       navigate('/')
@@ -25,7 +31,7 @@ export default function Login() {
       const data = err?.response?.data
       if (!err?.response) {
         setError(
-          'Impossible de joindre le serveur API. Démarrez Django (port 8000) ou vérifiez VITE_API_BASE_URL dans .env.development.',
+          'Impossible de joindre le serveur API. Vérifiez votre connexion Internet.',
         )
       } else if (data?.detail) {
         setError(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail))
@@ -41,7 +47,7 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-10 text-white">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 px-4 py-10 text-white">
       <div className="w-full max-w-2xl rounded-[2rem] border border-slate-800 bg-slate-900/95 p-10 shadow-2xl shadow-slate-950/40">
         <div className="mb-8 space-y-3 text-center">
           <p className="text-sm uppercase tracking-[0.35em] text-emerald-400/80">Application de gestion de flotte</p>
@@ -89,7 +95,43 @@ export default function Login() {
               </button>
             </div>
           </div>
-          {error ? <p className="text-sm text-rose-400">{error}</p> : null}
+
+          {/* ── Consentement légal ── */}
+          <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+            <label className="flex items-start gap-3 cursor-pointer select-none">
+              <input
+                id="consent-checkbox"
+                type="checkbox"
+                checked={accepted}
+                onChange={(e) => setAccepted(e.target.checked)}
+                className="mt-0.5 h-4 w-4 flex-shrink-0 accent-emerald-500 cursor-pointer"
+              />
+              <span className="text-sm text-slate-400 leading-relaxed">
+                J'accepte les{' '}
+                <Link
+                  to="/terms-of-use"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-emerald-400 underline underline-offset-2 hover:text-emerald-300 transition"
+                >
+                  Conditions d'utilisation
+                </Link>{' '}
+                et la{' '}
+                <Link
+                  to="/privacy-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-emerald-400 underline underline-offset-2 hover:text-emerald-300 transition"
+                >
+                  Politique de confidentialité
+                </Link>{' '}
+                de l'application.
+              </span>
+            </label>
+          </div>
+
+          {error ? <p className="text-sm text-rose-400 whitespace-pre-line">{error}</p> : null}
+
           <button
             type="submit"
             disabled={loading}
@@ -98,6 +140,15 @@ export default function Login() {
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
         </form>
+      </div>
+
+      {/* Footer légal sous le formulaire */}
+      <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs text-slate-600">
+        <Link to="/privacy-policy" className="hover:text-slate-400 transition">Politique de confidentialité</Link>
+        <span>·</span>
+        <Link to="/terms-of-use" className="hover:text-slate-400 transition">Conditions d'utilisation</Link>
+        <span>·</span>
+        <span>© {new Date().getFullYear()} Société ATL — v1.0.0</span>
       </div>
     </div>
   )

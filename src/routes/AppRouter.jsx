@@ -15,6 +15,8 @@ import RoadChecks from '../pages/RoadChecks'
 import Statistics from '../pages/Statistics'
 import Settings from '../pages/Settings'
 import NotFound from '../pages/NotFound'
+import PrivacyPolicy from '../pages/PrivacyPolicy'
+import TermsOfUse from '../pages/TermsOfUse'
 
 function AuthLoading() {
   return (
@@ -67,8 +69,12 @@ function DefaultRoute() {
 export default function AppRouter() {
   return (
     <Routes>
+      {/* Public routes — accessible sans authentification */}
       <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/terms-of-use" element={<TermsOfUse />} />
       <Route path="/register" element={<Navigate to="/login" replace />} />
+      {/* Protected routes */}
       <Route element={<DefaultRoute />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/vehicles" element={<Vehicles />} />

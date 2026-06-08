@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import Navbar from '../components/Navbar'
+import Footer from '../components/Footer'
 
 export default function DefaultLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -59,11 +60,12 @@ export default function DefaultLayout() {
       </div>
 
       {/* Main Content Area */}
-      <div className="lg:ml-72 min-h-screen">
+      <div className="lg:ml-72 flex flex-col min-h-screen">
         <Navbar onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="min-h-screen bg-slate-950 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 bg-slate-950 p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
+        <Footer />
       </div>
     </div>
   )
