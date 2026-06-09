@@ -14,6 +14,8 @@ export default function Login() {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
 
+  const [showColdStartWarning, setShowColdStartWarning] = useState(false)
+
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError(null)
@@ -24,25 +26,30 @@ export default function Login() {
     }
 
     setLoading(true)
+    setShowColdStartWarning(false)
+    
+    // Détecter si Render dort (avertir après 4 secondes)
+    const coldStartTimer = setTimeout(() => {
+      setShowColdStartWarning(true)
+    }, 4000)
+
     try {
       await login(email, password)
       navigate('/')
     } catch (err) {
-      const data = err?.response?.data
       if (!err?.response) {
         setError(
-          'Impossible de joindre le serveur API. Vérifiez votre connexion Internet.',
+          'Connexion impossible. Veuillez vérifier votre connexion Internet ou le démarrage du serveur API.',
         )
-      } else if (data?.detail) {
-        setError(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail))
-      } else if (data?.non_field_errors) {
-        setError(Array.isArray(data.non_field_errors) ? data.non_field_errors.join(' ') : String(data.non_field_errors))
+      } else if (err.response.status === 401 || err.response.status === 400) {
+        setError('Identifiant ou mot de passe incorrect.')
       } else {
-        const parts = Object.entries(data || {}).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(' ') : v}`)
-        setError(parts.length ? parts.join('\n') : 'Identifiants incorrects ou compte non autorisé.')
+        setError('Connexion impossible. Veuillez vérifier vos informations.')
       }
     } finally {
+      clearTimeout(coldStartTimer)
       setLoading(false)
+      setShowColdStartWarning(false)
     }
   }
 
@@ -132,12 +139,26 @@ export default function Login() {
 
           {error ? <p className="text-sm text-rose-400 whitespace-pre-line">{error}</p> : null}
 
+          {showColdStartWarning && (
+            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-center text-xs text-amber-300 animate-pulse">
+              Le serveur de production est en veille (Render). Démarrage en cours... Merci de patienter quelques secondes.
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-3xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full flex items-center justify-center gap-2 rounded-3xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? 'Connexion...' : 'Se connecter'}
+            {loading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-slate-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Vérification en cours...
+              </>
+            ) : 'Se connecter'}
           </button>
         </form>
       </div>

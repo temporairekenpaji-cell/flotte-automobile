@@ -16,29 +16,64 @@ export default function Dashboard() {
   const { user } = useContext(AuthContext)
 
   useEffect(() => {
+    const cachedSummary = window.sessionStorage.getItem('fleet_dashboard_summary')
+    const cachedMissions = window.sessionStorage.getItem('fleet_dashboard_missions')
+
+    if (cachedSummary) {
+      const summaryData = JSON.parse(cachedSummary)
+      setSummary(summaryData)
+      setAlerts((summaryData.alerts || []).slice(0, 4))
+      setLoading(false)
+    }
+    if (cachedMissions) {
+      setMissions(JSON.parse(cachedMissions))
+    }
+
     const loadDashboard = async () => {
-      setLoading(true)
       setError(null)
       try {
         const [summaryResponse, missionsResponse] = await Promise.all([
           api.get('/dashboard/'),
           api.get('/missions/?recent=true&limit=6'),
         ])
-        setSummary(summaryResponse.data)
-        setMissions(missionsResponse.data.results || missionsResponse.data || [])
-        setAlerts((summaryResponse.data.alerts || []).slice(0, 4))
+        const summaryData = summaryResponse.data
+        const missionsData = missionsResponse.data.results || missionsResponse.data || []
+        
+        setSummary(summaryData)
+        setMissions(missionsData)
+        setAlerts((summaryData.alerts || []).slice(0, 4))
+        
+        window.sessionStorage.setItem('fleet_dashboard_summary', JSON.stringify(summaryData))
+        window.sessionStorage.setItem('fleet_dashboard_missions', JSON.stringify(missionsData))
       } catch (err) {
         console.error('Erreur API:', err)
         setError('Impossible de charger le tableau de bord. Vérifiez la connexion API.')
-        setSummary(null)
-        setMissions([])
-        setAlerts([])
       } finally {
         setLoading(false)
       }
     }
 
     loadDashboard()
+
+    // background sync events
+    const handleUpdate = (e) => {
+      const summaryData = e.detail
+      setSummary(summaryData)
+      setAlerts((summaryData.alerts || []).slice(0, 4))
+      setLoading(false)
+    }
+
+    const handleMutation = () => {
+      loadDashboard()
+    }
+
+    window.addEventListener('dashboardDataUpdated', handleUpdate)
+    window.addEventListener('globalDataMutation', handleMutation)
+    
+    return () => {
+      window.removeEventListener('dashboardDataUpdated', handleUpdate)
+      window.removeEventListener('globalDataMutation', handleMutation)
+    }
   }, [])
 
   const operationalCards = useMemo(

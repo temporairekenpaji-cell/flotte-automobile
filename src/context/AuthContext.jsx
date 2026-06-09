@@ -41,6 +41,36 @@ export function AuthProvider({ children }) {
     setLoading(false)
   }, [])
 
+  useEffect(() => {
+    if (!token) return
+
+    const pollData = async () => {
+      try {
+        const response = await api.get('/dashboard/')
+        if (response.data) {
+          window.sessionStorage.setItem('fleet_dashboard_summary', JSON.stringify(response.data))
+          const event = new CustomEvent('dashboardDataUpdated', { detail: response.data })
+          window.dispatchEvent(event)
+        }
+      } catch (err) {
+        console.error("Erreur lors de la synchronisation en arrière-plan :", err)
+      }
+    }
+
+    pollData()
+    const interval = setInterval(pollData, 5000)
+
+    const handleManualTrigger = () => {
+      pollData()
+    }
+    window.addEventListener('triggerDashboardRefresh', handleManualTrigger)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('triggerDashboardRefresh', handleManualTrigger)
+    }
+  }, [token])
+
   const login = useCallback(async (email, password) => {
     const response = await authLogin(email, password)
     const savedToken = response.token || response.access || ''

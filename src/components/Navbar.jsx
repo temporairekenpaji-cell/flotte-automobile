@@ -22,19 +22,27 @@ export default function Navbar({ onMenuToggle }) {
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUnreadCount()
 
-    // Listen to custom update event
-    window.addEventListener('unreadNotificationsUpdated', fetchUnreadCount)
-    // Also poll every 60 seconds just in case the scheduler updates it in background
-    const interval = setInterval(fetchUnreadCount, 60000)
+    const handleDashboardUpdate = (e) => {
+      if (e.detail && typeof e.detail.unread_notifications !== 'undefined') {
+        setUnreadCount(e.detail.unread_notifications)
+      }
+    }
+
+    const handleMutation = () => {
+      fetchUnreadCount()
+    }
+
+    window.addEventListener('dashboardDataUpdated', handleDashboardUpdate)
+    window.addEventListener('unreadNotificationsUpdated', handleMutation)
+    window.addEventListener('globalDataMutation', handleMutation)
 
     return () => {
-      window.removeEventListener('unreadNotificationsUpdated', fetchUnreadCount)
-      clearInterval(interval)
+      window.removeEventListener('dashboardDataUpdated', handleDashboardUpdate)
+      window.removeEventListener('unreadNotificationsUpdated', handleMutation)
+      window.removeEventListener('globalDataMutation', handleMutation)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   return (

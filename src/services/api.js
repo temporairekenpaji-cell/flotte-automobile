@@ -19,7 +19,17 @@ api.interceptors.request.use((config) => {
 })
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const method = response.config?.method?.toUpperCase()
+    if (method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      // S'assurer de ne pas tourner en boucle
+      if (!response.config.url.includes('/dashboard/')) {
+        window.dispatchEvent(new CustomEvent('triggerDashboardRefresh'))
+        window.dispatchEvent(new CustomEvent('globalDataMutation'))
+      }
+    }
+    return response
+  },
   (error) => {
     if (error?.response?.status === 401) {
       window.localStorage.removeItem('fleet_token')
