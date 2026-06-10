@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { FiBell, FiLogOut, FiMenu } from 'react-icons/fi'
 import { getUnreadCount } from '../services/notifications'
+import OnlineBadge from './OnlineBadge'
 
 export default function Navbar({ onMenuToggle }) {
   const { user, logout } = useAuth()
@@ -68,6 +69,7 @@ export default function Navbar({ onMenuToggle }) {
 
         {/* Right side: actions */}
         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          <OnlineBadge />
           {user && (
             <button
               onClick={() => navigate('/notifications')}

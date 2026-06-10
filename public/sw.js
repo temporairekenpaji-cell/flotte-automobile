@@ -1,4 +1,4 @@
-const CACHE_NAME = 'atl-flotte-v1';
+const CACHE_NAME = 'atl-flotte-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -9,58 +9,57 @@ const ASSETS_TO_CACHE = [
   '/apple-touch-icon.png'
 ];
 
-// Install Event - cache basic shell assets
+// ─── Install : mettre en cache les ressources statiques ───────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Caching Shell Assets');
-      return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(ASSETS_TO_CACHE))
+      .then(() => self.skipWaiting())
   );
 });
 
-// Activate Event - clean old caches
+// ─── Activate : supprimer les anciens caches ───────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            console.log('[Service Worker] Removing old cache', key);
-            return caches.delete(key);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((key) => key !== CACHE_NAME && caches.delete(key)))
+    ).then(() => self.clients.claim())
   );
 });
 
-// Fetch Event - network-first or bypass for API requests
+// ─── Fetch : stratégie intelligente ────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
-  const requestUrl = new URL(event.request.url);
+  // Ne traiter que les requêtes GET
+  if (event.request.method !== 'GET') return;
 
-  // ALWAYS BYPASS cache for API calls to guarantee real-time sync with Django/PostgreSQL
-  if (requestUrl.pathname.includes('/api/')) {
-    event.respondWith(fetch(event.request));
+  const url = new URL(event.request.url);
+
+  // Les appels API Django sont gérés par IndexedDB dans React (pas le SW)
+  // → passage en réseau direct pour ne pas interférer avec la logique offline
+  if (url.pathname.includes('/api/') || url.hostname.includes('onrender.com')) {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        // Retourner une réponse vide signalant l'absence de réseau
+        return new Response(JSON.stringify({ _offline: true, error: 'network_unavailable' }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      })
+    );
     return;
   }
 
-  // Stale-While-Revalidate for other static assets
+  // Pour tous les autres assets (JS, CSS, fonts, images) → Cache-First
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200 && event.request.method === 'GET') {
-          const cacheCopy = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, cacheCopy);
-          });
+    caches.match(event.request).then((cached) => {
+      const networkFetch = fetch(event.request).then((response) => {
+        if (response && response.status === 200) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         }
-        return networkResponse;
-      }).catch(() => {
-        // Network failed, return cached response if available
+        return response;
       });
-
-      return cachedResponse || fetchPromise;
+      return cached || networkFetch;
     })
   );
 });
