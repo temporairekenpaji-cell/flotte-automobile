@@ -1,4 +1,4 @@
-const CACHE_NAME = 'atl-flotte-v2';
+const CACHE_NAME = 'atl-flotte-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -34,12 +34,20 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // Pour les requêtes de navigation (charger une page de l'app), renvoyer index.html
+  // Pour les requêtes de navigation (charger une page de l'app) → Network-First avec fallback Cache
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      caches.match('/index.html').then((cachedResponse) => {
-        return cachedResponse || fetch(event.request);
-      })
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy));
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match('/index.html');
+        })
     );
     return;
   }
