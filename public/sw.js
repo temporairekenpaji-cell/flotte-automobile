@@ -34,6 +34,16 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
+  // Pour les requêtes de navigation (charger une page de l'app), renvoyer index.html
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      caches.match('/index.html').then((cachedResponse) => {
+        return cachedResponse || fetch(event.request);
+      })
+    );
+    return;
+  }
+
   // Les appels API Django sont gérés par IndexedDB dans React (pas le SW)
   // → passage en réseau direct pour ne pas interférer avec la logique offline
   if (url.pathname.includes('/api/') || url.hostname.includes('onrender.com')) {
@@ -44,17 +54,6 @@ self.addEventListener('fetch', (event) => {
           status: 503,
           headers: { 'Content-Type': 'application/json' }
         });
-      })
-    );
-    return;
-  }
-
-  // Pour les navigations (ex: rafraîchir /login ou /vehicles hors ligne)
-  // Servir /index.html depuis le cache pour laisser React Router gérer la route.
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      caches.match('/index.html').then((cachedResponse) => {
-        return cachedResponse || fetch(event.request);
       })
     );
     return;
