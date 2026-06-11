@@ -49,6 +49,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Pour les navigations (ex: rafraîchir /login ou /vehicles hors ligne)
+  // Servir /index.html depuis le cache pour laisser React Router gérer la route.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      caches.match('/index.html').then((cachedResponse) => {
+        return cachedResponse || fetch(event.request);
+      })
+    );
+    return;
+  }
+
   // Pour tous les autres assets (JS, CSS, fonts, images) → Cache-First
   event.respondWith(
     caches.match(event.request).then((cached) => {
