@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { cacheGet, cachePut, queueAdd } from './offlineDB'
+import { cacheGet, cachePut, queueAdd, updateCacheWithMutation } from './offlineDB'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
@@ -86,10 +86,15 @@ api.interceptors.response.use(
         } catch { bodyData = null }
 
         await queueAdd({ method: error.config.method, endpoint: error.config.url, data: bodyData })
+        await updateCacheWithMutation(method, error.config.url, bodyData)
+
         window.dispatchEvent(new CustomEvent('offlineQueueChanged'))
-        console.log(`[Offline] Opération mise en attente : ${method} ${error.config.url}`)
+        window.dispatchEvent(new CustomEvent('triggerDashboardRefresh'))
+        window.dispatchEvent(new CustomEvent('globalDataMutation'))
+
+        console.log(`[Offline] Opération mise en attente et cache mis à jour : ${method} ${error.config.url}`)
         // Réponse optimiste pour ne pas bloquer l'interface
-        return { data: { _offline: true }, status: 200, headers: {}, config: error.config, _offline: true }
+        return { data: { _offline: true, ...bodyData }, status: 200, headers: {}, config: error.config, _offline: true }
       }
     }
 
