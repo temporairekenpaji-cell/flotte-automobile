@@ -27,7 +27,7 @@ export default function Login() {
 
     setLoading(true)
     setShowColdStartWarning(false)
-    
+
     // Détecter si Render dort (avertir après 4 secondes)
     const coldStartTimer = setTimeout(() => {
       setShowColdStartWarning(true)
@@ -169,7 +169,7 @@ export default function Login() {
         <span>·</span>
         <Link to="/terms-of-use" className="hover:text-slate-400 transition">Conditions d'utilisation</Link>
         <span>·</span>
-        <span>© {new Date().getFullYear()} Société ATL — v1.0.0</span>
+        <span>© {new Date().getFullYear()} Société ATL </span>
       </div>
     </div>
   )
